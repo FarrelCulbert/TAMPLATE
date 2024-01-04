@@ -1,0 +1,153 @@
+//====EARLY====//
+
+//LIBRARY
+#include <Arduino.h> 
+#if defined(ESP32) 
+#include <WiFi.h> 
+#elif defined(ESP8266) 
+#include <ESP8266WiFi.h> 
+#endif 
+#include <Firebase_ESP_Client.h> 
+#include "addons/TokenHelper.h" 
+#include "addons/RTDBHelper.h"
+
+//INPUT WIFI & RTDB
+#define WIFI_SSID "Kontrakan ITTS"
+#define WIFI_PASSWORD "kontrakan_itts"
+#define API_KEY "AIzaSyDVvRVAum2UC5tQ4O-zGyzfWrCI0jbhrhA"
+#define DATABASE_URL "https://nodemcu-8-default-rtdb.asia-southeast1.firebasedatabase.app/"
+
+FirebaseData fbdo; 
+FirebaseAuth auth; 
+FirebaseConfig config; 
+unsigned long sendDataPrevMillis = 0; 
+bool signupOK = false; 
+
+//SIMPAN VARIABEL//
+//baris untuk menyimpan data yang diambil dari RTDB//
+// - sesuaikan nama variabel dengan nama yang ada di program untuk ambil data RTDB
+// - hapus nama variabel yang tidak diperlukan
+int intValue;
+float floatValue;
+String stringValue;
+
+//baris untuk menyimpan variabel
+int value;
+
+void setup() {
+  Serial.begin(9600); 
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD); 
+  Serial.print("Connecting to Wi-Fi"); 
+  while (WiFi.status() != WL_CONNECTED){ 
+    Serial.print("."); 
+    delay(300); 
+  } 
+  Serial.println(); 
+  Serial.print("Connected with IP: "); 
+  Serial.println(WiFi.localIP()); 
+  Serial.println(); 
+  /* Assign the api key (required) */ 
+  config.api_key = API_KEY; 
+  /* Assign the RTDB URL (required) */ 
+  config.database_url = DATABASE_URL; 
+  /* Sign up */ 
+  if (Firebase.signUp(&config, &auth, "", "")){ 
+    Serial.println("ok"); 
+    signupOK = true; 
+  } 
+  else{ 
+    Serial.printf("%s\n", config.signer.signupError.message.c_str()); 
+  } 
+ 
+  /* Assign the callback function for the long running token generation task */ 
+  config.token_status_callback = tokenStatusCallback; //see addons/TokenHelper.h 
+   
+  Firebase.begin(&config, &auth); 
+  Firebase.reconnectWiFi(true); 
+
+}
+
+void loop() {
+  if (Firebase.ready() && signupOK && (millis() - sendDataPrevMillis > 1500 || sendDataPrevMillis == 0)){
+    sendDataPrevMillis = millis();
+
+    //KIRIM KE RTDB//
+    //hapus baris program yang tidak dipakai//
+
+    //KIRIM VALUE INTERGER
+    // - baris ini untuk kirim data format int
+    // - ganti /nama_direktori sesuai nama direktori di RTDB yang diinginkan
+    // - ganti value dengan nama variabel data yang mau dikirim
+    if (Firebase.RTDB.setInt(&fbdo, "/nama_direktori", value)){
+      Serial.println("PASSED");
+    }else{
+      Serial.println("FAILED");
+      Serial.println("REASON: " + fbdo.errorReason());
+    }
+
+    //KIRIM VALUE FLOAT
+    // - baris ini untuk kirim data format float
+    // - ganti /nama_direktori sesuai nama direktori di RTDB yang diinginkan
+    // - ganti value dengan nama variabel data yang mau dikirim
+    if (Firebase.RTDB.setFloat(&fbdo, "/nama_direktori", value)){
+      Serial.println("PASSED");
+    }else{
+      Serial.println("FAILED");
+      Serial.println("REASON: " + fbdo.errorReason());
+    }
+
+    //KIRIM VALUE FLOAT//
+    // - baris ini untuk kirim data format string
+    // - ganti /nama_direktori sesuai nama direktori di RTDB yang diinginkan
+    // - ganti value dengan nama variabel data yang mau dikirim 
+    if (Firebase.RTDB.setString(&fbdo, "/nama_direktori", value)){
+      Serial.println("PASSED");
+    }else{
+      Serial.println("FAILED");
+      Serial.println("REASON: " + fbdo.errorReason());
+    }
+
+    //AMBIL DARI RTDB//
+    //hapus baris program yang tidak dipakai//
+
+    //AMBIL VALUE INTERGER//
+    // - baris ini untuk  mengambil data dari RTDB format int
+    // - ganti "nama_direktori" dengan nama direktori di RTDB yang akan diambil
+    // - ganti intValue dengan nama variabel yang diinginkan
+    if(Firebase.RTDB.getInt(&fbdo,"nama_direktori")){
+      if (fbdo.dataType() == "int"){
+        intValue = fbdo.intData();
+        Serial.println(intValue);
+      }
+    }else{
+      Serial.println(fbdo.errorReason());
+    }
+
+    //AMBIL VALUE FLOAT//
+    // - baris ini untuk  mengambil data dari RTDB format float
+    // - ganti "nama_direktori" dengan nama direktori di RTDB yang akan diambil
+    // - ganti intValue dengan nama variabel yang diinginkan
+    if(Firebase.RTDB.getInt(&fbdo,"nama_direktori")){
+      if (fbdo.dataType() == "float"){
+        floatValue = fbdo.intData();
+        Serial.println(floatValue);
+      }
+    }else{
+      Serial.println(fbdo.errorReason());
+    }
+
+    //AMBIL VALUE STRING//
+    // - baris ini untuk  mengambil data dari RTDB format string
+    // - ganti "nama_direktori" dengan nama direktori di RTDB yang akan diambil
+    // - ganti intValue dengan nama variabel yang diinginkan
+    if(Firebase.RTDB.getString(&fbdo,"nama_direktori")){
+      if (fbdo.dataType() == "string"){
+        stringValue = fbdo.intData();
+        Serial.println(stringValue);
+      }
+    }else{
+      Serial.println(fbdo.errorReason());
+    }
+  }
+
+}
